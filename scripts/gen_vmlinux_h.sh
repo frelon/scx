@@ -16,6 +16,7 @@ INCLUDE_TARGET=$2 # target directory, e.g., /path/to/scx/sched/include/arch/
 HASH=$(git rev-parse HEAD)
 SHORT_SHA=${HASH:0:12} # full SHA of the commit truncated to 12 chars
 LINUX_VER=$(git describe --tags --abbrev=0)
+: ${BPFTOOL:=/usr/bin/bpftool}
 
 # List of architectures and their corresponding cross-compilers
 declare -A ARCHS
@@ -58,11 +59,20 @@ install_toolchains() {
             powerpc64le-linux-gnu-gcc riscv64-linux-gnu-gcc \
             s390x-linux-gnu-gcc
     elif command -v zypper &> /dev/null; then
-        sudo zypper install -y \
-            gcc-aarch64-linux-gnu gcc-x86_64-linux-gnu \
-            gcc-arm-linux-gnueabi gcc-mips64-linux-gnuabi64 \
-            gcc-powerpc64le-linux-gnu gcc-riscv64-linux-gnu \
-            gcc-s390x-linux-gnu
+        sudo zypper --non-interactive install \
+            cross-aarch64-gcc14 gcc \
+            cross-arm-gcc14 cross-mips-gcc14 \
+            cross-ppc64le-gcc14 cross-riscv64-gcc14 \
+            cross-s390x-gcc14
+        ARCHS=(
+            [x86]=""
+            [arm]="arm-suse-linux-gnueabi-"
+            [arm64]="aarch64-suse-linux-"
+            [mips]="mips-suse-linux-"
+            [powerpc]="powerpc64le-suse-linux-"
+            [riscv]="riscv64-suse-linux-"
+            [s390]="s390x-suse-linux-"
+        )
     else
         echo "Unsupported package manager. Please install cross-compilers manually."
         exit 1
@@ -86,14 +96,15 @@ generate_vmlinux_for_arch() {
 
     if [ -f ./vmlinux ]; then
         echo "Generating ${OUTPUT_FILE}..."
-        bpftool btf dump file ./vmlinux format c > "${OUTPUT_FILE}"
-        echo "${OUTPUT_FILE} generated successfully."
+        if ${BPFTOOL} btf dump file ./vmlinux format c > "${OUTPUT_FILE}"; then
+	    echo "${OUTPUT_FILE} generated successfully."
+	fi
     else
         echo "Failed to generate vmlinux for ${ARCH}. Please check the compilation process."
     fi
 }
 
-if ! command -v bpftool &> /dev/null
+if ! command -v ${BPFTOOL} &> /dev/null
 then
     echo "bpftool could not be found. Please install it first."
     exit 1
