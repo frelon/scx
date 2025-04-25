@@ -40,6 +40,7 @@ pub use perfetto_trace::PerfettoTraceManager;
 pub use protos::*;
 pub use stats::StatAggregation;
 pub use stats::VecStats;
+pub use std::ffi::c_char;
 pub use theme::AppTheme;
 pub use tui::Event;
 pub use tui::Tui;
@@ -390,9 +391,10 @@ impl TryFrom<&bpf_event> for Action {
             #[allow(non_upper_case_globals)]
             bpf_intf::event_type_SCHED_WAKEUP => {
                 let wakeup = unsafe { event.event.wakeup };
-                let comm = unsafe { CStr::from_ptr(event.event.wakeup.comm.as_ptr()) }
-                    .to_string_lossy()
-                    .to_string();
+                let comm =
+                    unsafe { CStr::from_ptr(event.event.wakeup.comm.as_ptr() as *const c_char) }
+                        .to_string_lossy()
+                        .to_string();
 
                 Ok(Action::SchedWakeup(SchedWakeupAction {
                     ts: event.ts,
@@ -406,7 +408,7 @@ impl TryFrom<&bpf_event> for Action {
             #[allow(non_upper_case_globals)]
             bpf_intf::event_type_SCHED_WAKING => {
                 let waking = unsafe { &event.event.waking };
-                let comm = unsafe { CStr::from_ptr(waking.comm.as_ptr()) }
+                let comm = unsafe { CStr::from_ptr(waking.comm.as_ptr() as *const c_char) }
                     .to_string_lossy()
                     .to_string();
 
@@ -427,7 +429,7 @@ impl TryFrom<&bpf_event> for Action {
             })),
             bpf_intf::event_type_EXIT => {
                 let exit = unsafe { &event.event.exit };
-                let comm = unsafe { CStr::from_ptr(exit.comm.as_ptr()) }
+                let comm = unsafe { CStr::from_ptr(exit.comm.as_ptr() as *const c_char) }
                     .to_string_lossy()
                     .to_string();
 
@@ -443,12 +445,14 @@ impl TryFrom<&bpf_event> for Action {
             #[allow(non_upper_case_globals)]
             bpf_intf::event_type_FORK => {
                 let fork = unsafe { &event.event.fork };
-                let parent_comm = unsafe { CStr::from_ptr(fork.parent_comm.as_ptr()) }
-                    .to_string_lossy()
-                    .to_string();
-                let child_comm = unsafe { CStr::from_ptr(fork.child_comm.as_ptr()) }
-                    .to_string_lossy()
-                    .to_string();
+                let parent_comm =
+                    unsafe { CStr::from_ptr(fork.parent_comm.as_ptr() as *const c_char) }
+                        .to_string_lossy()
+                        .to_string();
+                let child_comm =
+                    unsafe { CStr::from_ptr(fork.child_comm.as_ptr() as *const c_char) }
+                        .to_string_lossy()
+                        .to_string();
 
                 Ok(Action::Fork(ForkAction {
                     ts: event.ts,
@@ -467,12 +471,14 @@ impl TryFrom<&bpf_event> for Action {
             #[allow(non_upper_case_globals)]
             bpf_intf::event_type_SCHED_SWITCH => {
                 let sched_switch = unsafe { &event.event.sched_switch };
-                let prev_comm = unsafe { CStr::from_ptr(sched_switch.prev_comm.as_ptr()) }
-                    .to_string_lossy()
-                    .to_string();
-                let next_comm = unsafe { CStr::from_ptr(sched_switch.next_comm.as_ptr()) }
-                    .to_string_lossy()
-                    .to_string();
+                let prev_comm =
+                    unsafe { CStr::from_ptr(sched_switch.prev_comm.as_ptr() as *const c_char) }
+                        .to_string_lossy()
+                        .to_string();
+                let next_comm =
+                    unsafe { CStr::from_ptr(sched_switch.next_comm.as_ptr() as *const c_char) }
+                        .to_string_lossy()
+                        .to_string();
 
                 Ok(Action::SchedSwitch(SchedSwitchAction {
                     ts: event.ts,
